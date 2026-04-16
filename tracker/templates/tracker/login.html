@@ -3,135 +3,74 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MVRS Login</title>
+<title>Login — MVRS</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#1a1a2e;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',sans-serif;padding:16px}
-.wrap{width:100%;max-width:400px}
-.brand{text-align:center;margin-bottom:32px}
-.brand h1{color:#e94560;font-size:2.4rem;font-weight:900;letter-spacing:1px}
-.brand p{color:#666;font-size:.85rem;margin-top:4px;letter-spacing:2px;text-transform:uppercase}
-
-/* Step 1 — role chooser */
-.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:0}
-.role-btn{background:#fff;border-radius:14px;padding:28px 16px;text-align:center;cursor:pointer;
-  border:2px solid #eee;transition:all .2s;user-select:none}
-.role-btn:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
-.role-btn .icon{font-size:2.4rem;margin-bottom:10px}
-.role-btn .title{font-size:1rem;font-weight:800;color:#1a1a2e;margin-bottom:4px}
-.role-btn .desc{font-size:.74rem;color:#999}
-.role-btn.admin-btn:hover,.role-btn.admin-btn.selected{border-color:#e94560;background:#fff5f7}
-.role-btn.staff-btn:hover,.role-btn.staff-btn.selected{border-color:#27ae60;background:#f0faf4}
-
-/* Step 2 — password panel */
-.pw-panel{background:#fff;border-radius:14px;padding:28px;margin-top:14px;box-shadow:0 8px 32px rgba(0,0,0,.3);display:none}
-.pw-panel.show{display:block;animation:slideIn .2s ease}
-@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-.pw-panel .back{font-size:.78rem;color:#aaa;cursor:pointer;margin-bottom:16px;display:inline-block}
-.pw-panel .back:hover{color:#555}
-.pw-panel h3{font-size:1rem;font-weight:700;margin-bottom:4px}
-.pw-panel .sub{font-size:.78rem;color:#aaa;margin-bottom:20px}
-.pw-panel label{font-size:.75rem;color:#777;font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px}
-.pw-panel input{width:100%;padding:12px 14px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:1rem;outline:none;margin-bottom:16px}
-.pw-panel button{width:100%;padding:13px;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer}
-
-.btn-admin{background:#e94560;color:#fff}.btn-admin:hover{background:#c73652}
-.btn-staff{background:#27ae60;color:#fff}.btn-staff:hover{background:#1e9150}
-.err{background:#fdecea;color:#c0392b;padding:9px 13px;border-radius:7px;font-size:.82rem;margin-bottom:16px;text-align:center}
+body{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',sans-serif;padding:16px}
+.box{background:#fff;border-radius:16px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.logo{text-align:center;margin-bottom:20px}
+.logo .icon{font-size:2.4rem}
+.logo h1{font-size:1.3rem;font-weight:800;color:#1a1a2e;margin-top:6px}
+.logo p{color:#888;font-size:.84rem;margin-top:2px}
+.tabs{display:flex;background:#f0f2f5;border-radius:10px;padding:4px;margin-bottom:22px;gap:4px}
+.tab{flex:1;text-align:center;padding:8px;border-radius:8px;border:none;cursor:pointer;font-size:.86rem;font-weight:600;transition:all .2s;background:transparent;color:#888}
+.tab.active{background:#1a1a2e;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+label{display:block;font-size:.78rem;color:#555;margin-bottom:5px;font-weight:600;margin-top:12px}
+input{width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:.92rem;outline:none;transition:border .2s;-webkit-appearance:none}
+input:focus{border-color:#e94560}
+button[type=submit]{width:100%;padding:12px;background:#e94560;color:#fff;border:none;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:18px;transition:background .2s}
+button[type=submit]:hover{background:#c73652}
+.err{background:#fdecea;color:#c0392b;padding:9px 12px;border-radius:8px;font-size:.82rem;margin-bottom:14px;text-align:center}
+.back{display:block;text-align:center;margin-top:14px;color:#aaa;font-size:.8rem;text-decoration:none}
+.back:hover{color:#e94560}
+#staffSection{display:none}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="brand">
-    <h1>🍽 MVRS</h1>
-    <p>Restaurant Tracker</p>
+<div class="box">
+  <div class="logo">
+    <div class="icon">🍛</div>
+    <h1>MV Royal Spice</h1>
+    <p>Restaurant Management System</p>
   </div>
 
   {% if error %}<div class="err">{{ error }}</div>{% endif %}
 
-  <!-- Step 1: Choose role -->
-  <div class="role-grid" id="roleGrid">
-    <div class="role-btn admin-btn" onclick="selectRole('admin')">
-      <div class="icon">🔑</div>
-      <div class="title">Admin</div>
-      <div class="desc">Full access<br>Dashboard & Reports</div>
-    </div>
-    <div class="role-btn staff-btn" onclick="selectRole('staff')">
-      <div class="icon">👤</div>
-      <div class="title">Staff</div>
-      <div class="desc">Attendance only<br>Mark salary & leave</div>
-    </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('admin')" id="tabAdmin">🔐 Admin</button>
+    <button class="tab" onclick="switchTab('staff')" id="tabStaff">👥 Staff</button>
   </div>
 
-  <!-- Step 2: Password panel (shown after role click) -->
-  <div class="pw-panel" id="pwPanel">
-    <span class="back" onclick="goBack()">← Change role</span>
-    <h3 id="panelTitle"></h3>
-    <p class="sub" id="panelSub"></p>
-    <form method="post" id="loginForm">{% csrf_token %}
-      <input type="hidden" name="role" id="roleInput">
-      <label>Password</label>
-      <input type="password" name="password" id="pwInput" placeholder="Enter password" autofocus>
-      <button type="submit" id="submitBtn">Login</button>
+  <!-- Admin login -->
+  <div id="adminSection">
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="role" value="admin">
+      <label>Admin Password</label>
+      <input type="password" name="password" placeholder="Enter admin password" autofocus>
+      <button type="submit">Login as Admin</button>
+    </form>
+  </div>
+
+  <!-- Staff login -->
+  <div id="staffSection">
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="role" value="staff">
+      <label>Staff Password</label>
+      <input type="password" name="password" placeholder="Enter staff password">
+      <button type="submit" style="background:#27ae60">Enter Staff Portal</button>
     </form>
   </div>
 </div>
 
 <script>
-// If there was an error, show the panel for whichever role was attempted
-{% if error %}
-  // re-show panel on error
-  document.addEventListener('DOMContentLoaded', function(){
-    // Try to determine which role had the error
-    var err = "{{ error }}";
-    if(err.indexOf('staff') !== -1 || err.indexOf('Staff') !== -1){
-      selectRole('staff');
-    } else {
-      selectRole('admin');
-    }
-  });
-{% endif %}
-
-function selectRole(role) {
-  var panel    = document.getElementById('pwPanel');
-  var title    = document.getElementById('panelTitle');
-  var sub      = document.getElementById('panelSub');
-  var roleInp  = document.getElementById('roleInput');
-  var submitBtn= document.getElementById('submitBtn');
-  var pwInput  = document.getElementById('pwInput');
-  var adminBtn = document.querySelector('.admin-btn');
-  var staffBtn = document.querySelector('.staff-btn');
-
-  roleInp.value = role;
-
-  if(role === 'admin'){
-    title.textContent     = '🔑 Admin Login';
-    sub.textContent       = 'Full access — dashboard, vendors, reports, staff';
-    submitBtn.className   = 'btn-admin';
-    submitBtn.textContent = 'Login as Admin';
-    adminBtn.classList.add('selected');
-    staffBtn.classList.remove('selected');
-    pwInput.style.borderColor = '#e94560';
-  } else {
-    title.textContent     = '👤 Staff Login';
-    sub.textContent       = 'Attendance portal — mark salary & present/absent';
-    submitBtn.className   = 'btn-staff';
-    submitBtn.textContent = 'Login as Staff';
-    staffBtn.classList.add('selected');
-    adminBtn.classList.remove('selected');
-    pwInput.style.borderColor = '#27ae60';
-  }
-
-  panel.classList.add('show');
-  pwInput.value = '';
-  setTimeout(function(){ pwInput.focus(); }, 50);
+function switchTab(tab){
+  document.getElementById('adminSection').style.display=tab==='admin'?'block':'none';
+  document.getElementById('staffSection').style.display=tab==='staff'?'block':'none';
+  document.getElementById('tabAdmin').className='tab'+(tab==='admin'?' active':'');
+  document.getElementById('tabStaff').className='tab'+(tab==='staff'?' active':'');
 }
-
-function goBack() {
-  document.getElementById('pwPanel').classList.remove('show');
-  document.querySelector('.admin-btn').classList.remove('selected');
-  document.querySelector('.staff-btn').classList.remove('selected');
-}
+// Auto-switch to staff tab if it was a staff error
+{% if error and 'staff' in request.POST.role %}switchTab('staff');{% endif %}
 </script>
 </body>
 </html>
