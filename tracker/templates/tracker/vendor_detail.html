@@ -1,0 +1,122 @@
+{% extends 'tracker/base.html' %}
+{% block content %}
+
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+  <a href="{% url 'vendors' %}" style="color:#999;text-decoration:none;font-size:.85rem">← All Vendors</a>
+  <span style="color:#ccc">|</span>
+  <h1 style="font-size:1.25rem;font-weight:700;color:#1a1a2e">{{ vendor.name }}</h1>
+  <span style="background:#fdecea;border-radius:8px;padding:5px 12px;font-size:.85rem;color:#e74c3c;font-weight:700">
+    Today: ₹{{ today_total|floatformat:2 }}
+  </span>
+</div>
+
+<div class="grid2">
+
+  <!-- Add Entry -->
+  <div class="card">
+    <h2>➕ Add Purchase Entry</h2>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="add_entry">
+      <div style="margin-bottom:10px">
+        <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Item</label>
+        <select name="subcategory" required>
+          <option value="">— Select item —</option>
+          {% for s in subcategories %}
+          <option value="{{ s.id }}">{{ s.name }}{% if s.last_price %} · last ₹{{ s.last_price }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Date</label>
+        <input type="date" name="date" value="{{ today|date:'Y-m-d' }}">
+      </div>
+      <div class="grid2" style="gap:10px;margin-bottom:14px">
+        <div>
+          <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Weight (kg)</label>
+          <input type="number" name="weight" step="0.001" min="0" placeholder="0.000" required>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Price (₹/kg)</label>
+          <input type="number" name="price" step="0.01" min="0" placeholder="0.00" required>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Add Entry</button>
+    </form>
+  </div>
+
+  <!-- Subcategories — NO green highlight, just plain background -->
+  <div class="card">
+    <h2>📦 Items List</h2>
+    <form method="post" style="display:flex;gap:8px;margin-bottom:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="add_subcategory">
+      <input type="text" name="name" placeholder="New item name" required style="flex:1">
+      <button type="submit" class="btn btn-green btn-sm">Add</button>
+    </form>
+    <div style="max-height:280px;overflow-y:auto;padding-right:4px">
+      {% for s in subcategories %}
+      <div style="display:flex;align-items:center;justify-content:space-between;
+        padding:7px 10px;border-radius:7px;margin-bottom:4px;
+        background:#f8f9fa;border:1px solid #eee;">
+        <div>
+          <span style="font-size:.88rem;font-weight:600;color:#1a1a2e">{{ s.name }}</span>
+          {% if s.last_price > 0 %}
+          <span style="font-size:.75rem;color:#555;margin-left:8px;font-weight:600">last ₹{{ s.last_price }}</span>
+          {% endif %}
+        </div>
+        <form method="post" onsubmit="return confirm('Delete {{ s.name }}?')">{% csrf_token %}
+          <input type="hidden" name="action" value="delete_subcategory">
+          <input type="hidden" name="sub_id" value="{{ s.id }}">
+          <button type="submit" class="btn btn-danger btn-sm">✕</button>
+        </form>
+      </div>
+      {% empty %}
+      <p style="color:#bbb;font-size:.85rem;text-align:center;padding:16px">No items yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Today's Entries Table -->
+<div class="card">
+  <h2>📋 Today's Entries — {{ today|date:"d M Y" }}</h2>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Weight (kg)</th><th>Price (₹/kg)</th><th style="text-align:right">Total (₹)</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for e in today_entries %}
+        <tr>
+          <td style="font-weight:600">{{ e.subcategory.name }}</td>
+          <td>{{ e.weight }}</td>
+          <td>₹{{ e.price }}</td>
+          <td style="text-align:right;font-weight:700;color:#27ae60">₹{{ e.total }}</td>
+          <td>
+            <form method="post" onsubmit="return confirm('Delete this entry?')">{% csrf_token %}
+              <input type="hidden" name="action" value="delete_entry">
+              <input type="hidden" name="entry_id" value="{{ e.id }}">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" style="text-align:center;color:#bbb;padding:28px;font-size:.9rem">
+            No entries added today
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% if today_entries %}
+      <tfoot>
+        <tr style="background:#f8f9fa;font-weight:700">
+          <td colspan="3">Total</td>
+          <td style="text-align:right;color:#e74c3c">₹{{ today_total|floatformat:2 }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

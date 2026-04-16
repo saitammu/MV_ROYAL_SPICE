@@ -1,0 +1,226 @@
+{% extends 'tracker/base.html' %}
+{% block content %}
+
+<style>
+.att-badge { display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:700;letter-spacing:.5px }
+.att-full  { background:#d4edda;color:#155724 }
+.att-half  { background:#fff3cd;color:#856404 }
+.att-absent{ background:#f8d7da;color:#721c24 }
+.att-radio-group { display:flex;gap:6px }
+.att-radio-group label {
+  display:flex;align-items:center;gap:4px;
+  padding:4px 10px;border-radius:20px;border:1.5px solid #ddd;
+  cursor:pointer;font-size:.78rem;font-weight:600;transition:all .15s;user-select:none;white-space:nowrap
+}
+.att-radio-group input[type=radio] { display:none }
+.att-radio-group input:checked + span { font-weight:800 }
+.att-radio-group label:has(input[value=full_day]:checked) { background:#d4edda;border-color:#27ae60;color:#155724 }
+.att-radio-group label:has(input[value=half_day]:checked) { background:#fff3cd;border-color:#ffc107;color:#856404 }
+.att-radio-group label:has(input[value=absent]:checked)   { background:#f8d7da;border-color:#dc3545;color:#721c24 }
+.modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center }
+.modal-overlay.open { display:flex }
+.modal-box { background:#fff;border-radius:14px;padding:28px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,.25) }
+.modal-box h3 { font-size:1rem;font-weight:700;margin-bottom:16px;color:#1a1a2e }
+.staff-submitted { font-size:.72rem;color:#27ae60;font-weight:600 }
+</style>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+  <h1 style="font-size:1.25rem;font-weight:700;color:#1a1a2e">
+    👥 Staff Attendance &nbsp;·&nbsp; <span style="color:#888;font-weight:400">{{ today|date:"d M Y" }}</span>
+  </h1>
+  <div style="background:#fdecea;border-radius:8px;padding:8px 16px;font-size:.9rem">
+    Staff Cost Today: <strong style="color:#e74c3c;font-size:1.1rem" id="bannerTotal">₹{{ total_staff_cost|floatformat:2 }}</strong>
+  </div>
+</div>
+
+{% if is_admin %}
+<!-- Add Staff -->
+<div class="card">
+  <h2>➕ Add New Staff Member</h2>
+  <form method="post" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">{% csrf_token %}
+    <input type="hidden" name="action" value="add_staff">
+    <div style="flex:2;min-width:140px">
+      <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Name</label>
+      <input type="text" name="name" placeholder="Staff name" required>
+    </div>
+    <div style="flex:1;min-width:130px">
+      <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Role</label>
+      <select name="role">{% for val,label in roles %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div style="flex:1;min-width:110px">
+      <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Fixed Salary (₹)</label>
+      <input type="number" name="fixed_salary" placeholder="0" min="0" step="1">
+    </div>
+    <div><button type="submit" class="btn btn-green">+ Add</button></div>
+  </form>
+</div>
+{% endif %}
+
+<!-- Edit Staff Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <h3>✏️ Edit Staff Member</h3>
+    <form method="post" id="editForm">{% csrf_token %}
+      <input type="hidden" name="action" value="edit_staff">
+      <input type="hidden" name="staff_id" id="editStaffId">
+      <div style="margin-bottom:12px">
+        <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Name</label>
+        <input type="text" id="editStaffName" disabled style="background:#f5f5f5;color:#888">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Role</label>
+        <select name="role" id="editRole">{% for val,label in roles %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:.78rem;color:#666;font-weight:600;display:block;margin-bottom:4px">Fixed Salary (₹)</label>
+        <input type="number" name="fixed_salary" id="editSalary" min="0" step="1">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button type="submit" class="btn btn-primary" style="flex:1">Save Changes</button>
+        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Salary / Attendance Table -->
+<div class="card">
+  <h2>💵 Today's Salary & Attendance</h2>
+  <form method="post" id="payForm">{% csrf_token %}
+    <input type="hidden" name="action" value="save_payments">
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Attendance</th>
+            <th>Salary (₹)</th>
+            <th>Incentive (₹)</th>
+            <th style="text-align:right">Total</th>
+            {% if is_admin %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr id="tr_{{ p.id }}">
+            <td style="font-weight:600">
+              {{ p.staff.name }}
+              {% if p.staff_submitted %}<br><span class="staff-submitted">✓ self-marked</span>{% endif %}
+            </td>
+            <td><span class="badge badge-green">{{ p.staff.get_role_display }}</span></td>
+            <td>
+              <div class="att-radio-group">
+                <label>
+                  <input type="radio" name="attendance_{{ p.id }}" value="full_day"
+                    {% if p.attendance_status == 'full_day' %}checked{% endif %} onchange="recalc()">
+                  <span>Full Day</span>
+                </label>
+                <label>
+                  <input type="radio" name="attendance_{{ p.id }}" value="half_day"
+                    {% if p.attendance_status == 'half_day' %}checked{% endif %} onchange="recalc()">
+                  <span>Half Day</span>
+                </label>
+                <label>
+                  <input type="radio" name="attendance_{{ p.id }}" value="absent"
+                    {% if p.attendance_status == 'absent' %}checked{% endif %} onchange="recalc()">
+                  <span>Absent</span>
+                </label>
+              </div>
+            </td>
+            <td>
+              <input type="number" name="salary_{{ p.id }}" id="sal_{{ p.id }}"
+                value="{{ p.salary }}" step="0.01" min="0" oninput="recalc()" style="width:110px">
+            </td>
+            <td>
+              <input type="number" name="incentive_{{ p.id }}" id="inc_{{ p.id }}"
+                value="{{ p.incentive }}" step="0.01" min="0" oninput="recalc()" style="width:110px">
+            </td>
+            <td style="text-align:right;font-weight:700;color:#27ae60;white-space:nowrap" id="row_{{ p.id }}">
+              ₹{{ p.total|floatformat:2 }}
+            </td>
+            {% if is_admin %}
+            <td style="white-space:nowrap">
+              <button type="button" class="btn btn-secondary btn-sm"
+                onclick="openEditModal({{ p.staff.id }},'{{ p.staff.name }}','{{ p.staff.role }}',{{ p.staff.fixed_salary }})">✏️</button>
+              <form method="post" style="display:inline" onsubmit="return confirm('Remove {{ p.staff.name }} from attendance?')">{% csrf_token %}
+                <input type="hidden" name="action" value="remove_staff">
+                <input type="hidden" name="staff_id" value="{{ p.staff.id }}">
+                <button type="submit" class="btn btn-danger btn-sm">✕</button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;color:#bbb;padding:30px">No staff added yet.</td></tr>
+          {% endfor %}
+        </tbody>
+        {% if payments %}
+        <tfoot>
+          <tr style="background:#f8f9fa;font-weight:700">
+            <td colspan="3">Total (present only)</td>
+            <td id="fSal">₹{{ total_salary|floatformat:2 }}</td>
+            <td id="fInc">₹{{ total_incentive|floatformat:2 }}</td>
+            <td style="text-align:right;color:#e74c3c" id="fTot">₹{{ total_staff_cost|floatformat:2 }}</td>
+            {% if is_admin %}<td></td>{% endif %}
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+    {% if payments %}
+    <div style="margin-top:16px;text-align:right">
+      <button type="submit" class="btn btn-primary">💾 Save All</button>
+    </div>
+    {% endif %}
+  </form>
+</div>
+
+{% if is_admin %}
+<div style="text-align:center;margin-top:4px">
+  <a href="{% url 'staff_list' %}" class="btn btn-secondary btn-sm">📋 View Staff History</a>
+  &nbsp;
+  <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-sm">← Dashboard</a>
+</div>
+{% endif %}
+
+<script>
+function recalc() {
+  var tSal=0, tInc=0, tCost=0;
+  document.querySelectorAll('[name^="salary_"]').forEach(function(el){
+    var pid  = el.name.replace('salary_','');
+    var att  = document.querySelector('[name="attendance_'+pid+'"]:checked');
+    var attV = att ? att.value : 'full_day';
+    var sal  = parseFloat(el.value)||0;
+    var inc  = parseFloat(document.getElementById('inc_'+pid).value)||0;
+    var effSal = attV==='absent' ? 0 : (attV==='half_day' ? sal/2 : sal);
+    var rowT   = attV==='absent' ? 0 : effSal+inc;
+    document.getElementById('row_'+pid).textContent = '₹'+rowT.toFixed(2);
+    if(attV!=='absent'){ tSal+=effSal; tInc+=inc; tCost+=effSal+inc; }
+  });
+  var fs=document.getElementById('fSal'), fi=document.getElementById('fInc'),
+      ft=document.getElementById('fTot'), bn=document.getElementById('bannerTotal');
+  if(fs) fs.textContent='₹'+tSal.toFixed(2);
+  if(fi) fi.textContent='₹'+tInc.toFixed(2);
+  if(ft) ft.textContent='₹'+tCost.toFixed(2);
+  if(bn) bn.textContent='₹'+tCost.toFixed(2);
+}
+
+function openEditModal(staffId, name, role, salary){
+  document.getElementById('editStaffId').value = staffId;
+  document.getElementById('editStaffName').value = name;
+  document.getElementById('editSalary').value = salary;
+  var sel = document.getElementById('editRole');
+  for(var i=0;i<sel.options.length;i++){
+    sel.options[i].selected = (sel.options[i].value === role);
+  }
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal(){
+  document.getElementById('editModal').classList.remove('open');
+}
+document.getElementById('editModal').addEventListener('click', function(e){
+  if(e.target === this) closeEditModal();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Staff Attendance — MV Royal Spice</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);min-height:100vh;font-family:'Nunito',sans-serif;color:#fff;padding:20px}
+.header{text-align:center;padding:28px 0 22px}
+.header h1{font-size:1.6rem;font-weight:900;letter-spacing:.5px}
+.header p{color:rgba(255,255,255,.6);font-size:.9rem;margin-top:4px}
+.date-chip{display:inline-block;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 16px;font-size:.82rem;font-weight:700;margin-top:8px;letter-spacing:.5px}
+.success-bar{background:#27ae60;border-radius:10px;padding:12px 20px;text-align:center;font-weight:700;font-size:.95rem;margin-bottom:18px;box-shadow:0 4px 12px rgba(39,174,96,.4)}
+.staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;max-width:1000px;margin:0 auto}
+.staff-card{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border-radius:14px;padding:18px 20px;border:1.5px solid rgba(255,255,255,.12);transition:transform .15s,box-shadow .15s}
+.staff-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.staff-name{font-size:1.05rem;font-weight:800;margin-bottom:3px}
+.staff-role{font-size:.75rem;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.att-options{display:flex;gap:8px;margin-bottom:14px}
+.att-btn{flex:1;padding:9px 4px;border-radius:10px;border:2px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;text-align:center}
+.att-btn:hover{border-color:rgba(255,255,255,.5);color:#fff}
+.att-btn.sel-full { background:#27ae60;border-color:#27ae60;color:#fff;box-shadow:0 3px 10px rgba(39,174,96,.4) }
+.att-btn.sel-half { background:#f39c12;border-color:#f39c12;color:#fff;box-shadow:0 3px 10px rgba(243,156,18,.4) }
+.att-btn.sel-absent { background:#e74c3c;border-color:#e74c3c;color:#fff;box-shadow:0 3px 10px rgba(231,76,60,.4) }
+.submit-btn{width:100%;padding:10px;border-radius:10px;border:none;background:rgba(255,255,255,.15);color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .15s}
+.submit-btn:hover{background:rgba(255,255,255,.25)}
+.submit-btn:disabled{opacity:.4;cursor:default}
+.marked-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(39,174,96,.25);border:1.5px solid #27ae60;border-radius:20px;padding:3px 12px;font-size:.75rem;font-weight:700;color:#a8f0c6;margin-bottom:10px}
+.salary-info{font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:10px}
+.back-link{display:block;text-align:center;margin-top:24px;color:rgba(255,255,255,.5);font-size:.82rem;text-decoration:none}
+.back-link:hover{color:#fff}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍛 MV Royal Spice</h1>
+  <p>Staff Attendance Portal</p>
+  <div class="date-chip">📅 {{ today|date:"l, d M Y" }}</div>
+</div>
+
+{% if success_msg %}
+<div style="max-width:1000px;margin:0 auto 18px">
+  <div class="success-bar">✅ {{ success_msg }}</div>
+</div>
+{% endif %}
+
+<div class="staff-grid">
+  {% for p in payments %}
+  <div class="staff-card">
+    <div class="staff-name">{{ p.staff.name }}</div>
+    <div class="staff-role">{{ p.staff.get_role_display }}</div>
+
+    {% if p.staff_submitted %}
+    <div class="marked-badge">
+      ✓ Marked:
+      {% if p.attendance_status == 'full_day' %}Full Day{% elif p.attendance_status == 'half_day' %}Half Day{% else %}Absent{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="salary-info">Fixed Salary: ₹{{ p.staff.fixed_salary|floatformat:0 }}</div>
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="staff_mark_attendance">
+      <input type="hidden" name="staff_id" value="{{ p.staff.id }}">
+      <input type="hidden" name="attendance_status" id="att_{{ p.id }}" value="{{ p.attendance_status }}">
+
+      <div class="att-options">
+        <button type="button" class="att-btn {% if p.attendance_status == 'full_day' %}sel-full{% endif %}"
+          id="btn_full_{{ p.id }}" onclick="selectAtt('{{ p.id }}','full_day')">
+          ☀️ Full Day
+        </button>
+        <button type="button" class="att-btn {% if p.attendance_status == 'half_day' %}sel-half{% endif %}"
+          id="btn_half_{{ p.id }}" onclick="selectAtt('{{ p.id }}','half_day')">
+          🌤 Half Day
+        </button>
+        <button type="button" class="att-btn {% if p.attendance_status == 'absent' %}sel-absent{% endif %}"
+          id="btn_absent_{{ p.id }}" onclick="selectAtt('{{ p.id }}','absent')">
+          ❌ Absent
+        </button>
+      </div>
+
+      <button type="submit" class="submit-btn">Mark Attendance</button>
+    </form>
+  </div>
+  {% empty %}
+  <div style="text-align:center;color:rgba(255,255,255,.5);padding:40px;grid-column:1/-1">
+    No staff members found for today.
+  </div>
+  {% endfor %}
+</div>
+
+<a class="back-link" href="{% url 'login' %}">← Logout</a>
+
+<script>
+function selectAtt(pid, val){
+  document.getElementById('att_'+pid).value = val;
+  var types = ['full','half','absent'];
+  types.forEach(function(t){
+    var btn = document.getElementById('btn_'+t+'_'+pid);
+    btn.className = 'att-btn';
+  });
+  var map = {full_day:'full',half_day:'half',absent:'absent'};
+  var selClass = {full_day:'sel-full',half_day:'sel-half',absent:'sel-absent'};
+  document.getElementById('btn_'+map[val]+'_'+pid).className = 'att-btn '+selClass[val];
+}
+</script>
+</body>
+</html>

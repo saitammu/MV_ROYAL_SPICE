@@ -1,0 +1,43 @@
+{% extends 'tracker/base.html' %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="{% url 'dashboard' %}" style="color:#999;text-decoration:none;font-size:.85rem">← Dashboard</a>
+    <h1 style="font-size:1.25rem;font-weight:700;color:#c0392b">🍕 Zomato Report</h1>
+  </div>
+  <a href="{% url 'export_platform_csv' %}?platform=zomato"
+     class="btn btn-green btn-sm">📥 Download CSV</a>
+</div>
+
+<div class="stat-box" style="margin-bottom:20px;background:#fdecea;border:2px solid #e74c3c;max-width:260px">
+  <div class="label">Total Zomato (All Days)</div>
+  <div class="value loss">₹{{ total|floatformat:2 }}</div>
+</div>
+
+<div class="card">
+  <h2>Daily Zomato Amounts</h2>
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Date</th><th style="text-align:right">Zomato Amount (₹)</th></tr></thead>
+      <tbody>
+        {% for f in entries %}
+        <tr>
+          <td>{{ f.date|date:"d M Y, D" }}</td>
+          <td style="text-align:right;font-weight:700;color:#c0392b">₹{{ f.zomato|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="2" style="text-align:center;color:#bbb;padding:28px">No Zomato entries yet</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if entries %}
+      <tfoot>
+        <tr style="background:#fdecea;font-weight:800">
+          <td>TOTAL</td>
+          <td style="text-align:right;color:#c0392b">₹{{ total|floatformat:2 }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends 'tracker/base.html' %}
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+  <h1 style="font-size:1.25rem;font-weight:700;color:#1a1a2e">📋 Reports</h1>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input type="date" id="reportDate" value="{{ report_date|date:'Y-m-d' }}"
+      max="{{ today|date:'Y-m-d' }}"
+      style="border:1.5px solid #ddd;border-radius:7px;padding:7px 10px;font-size:.88rem;outline:none">
+    <button onclick="viewReport()" class="btn btn-primary btn-sm">🔍 View</button>
+    <button onclick="exportReport()" class="btn btn-green btn-sm">📥 Export CSV</button>
+  </div>
+</div>
+
+{% if finance %}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+  <div class="stat-box"><div class="label">Earnings (Cash)</div><div class="value neutral">₹{{ finance.total_earnings|floatformat:0 }}</div></div>
+  <div class="stat-box"><div class="label">Expenses</div><div class="value loss">₹{{ finance.total_deductions|floatformat:0 }}</div></div>
+  <div class="stat-box"><div class="label">Carry Fwd</div><div class="value" style="color:#8e44ad">₹{{ finance.carry_forward|floatformat:0 }}</div></div>
+  <div class="stat-box" style="background:{% if finance.net_profit >= 0 %}#d5f5e3{% else %}#fdecea{% endif %}">
+    <div class="label">Net Profit</div>
+    <div class="value {% if finance.net_profit >= 0 %}profit{% else %}loss{% endif %}">₹{{ finance.net_profit|floatformat:0 }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>💰 Earnings — {{ report_date|date:"d M Y" }}</h2>
+  <table>
+    <tr><td style="color:#666">💵 Cash</td><td style="text-align:right;font-weight:600">₹{{ finance.cash|floatformat:2 }}</td></tr>
+    <tr style="font-weight:800">
+      <td style="padding-top:10px;border-top:2px solid #eee">Total Earnings</td>
+      <td style="text-align:right;color:#2980b9;padding-top:10px;border-top:2px solid #eee">₹{{ finance.total_earnings|floatformat:2 }}</td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:#fdecea;border:1px dashed #e74c3c;border-radius:7px;padding:9px 12px;font-size:.82rem;color:#c0392b">
+            🍕 Zomato (record only) — ₹{{ finance.zomato|floatformat:2 }}
+          </div>
+          <div style="background:#fff3e0;border:1px dashed #f39c12;border-radius:7px;padding:9px 12px;font-size:.82rem;color:#e67e22">
+            🛵 Swiggy (record only) — ₹{{ finance.swiggy|floatformat:2 }}
+          </div>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;color:#aaa;padding:30px">
+  No finance data recorded for {{ report_date|date:"d M Y" }}
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>🛒 Vendor Purchases — {{ report_date|date:"d M Y" }}</h2>
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Vendor</th><th>Item</th><th>Weight</th><th>Price/kg</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td style="color:#888">{{ e.subcategory.vendor.name }}</td>
+          <td style="font-weight:600">{{ e.subcategory.name }}</td>
+          <td>{{ e.weight }} kg</td>
+          <td>₹{{ e.price }}</td>
+          <td style="text-align:right;font-weight:700;color:#27ae60">₹{{ e.total }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;color:#bbb;padding:24px">No vendor entries for this date</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if entries %}
+      <tfoot>
+        <tr style="background:#f8f9fa;font-weight:700">
+          <td colspan="4">Vendor Total</td>
+          <td style="text-align:right;color:#e74c3c">₹{{ grand_total|floatformat:2 }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+
+{% if finance %}
+<div class="card">
+  <h2>👥 Staff — {{ report_date|date:"d M Y" }}</h2>
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Name</th><th>Role</th><th>Present</th><th>Salary</th><th>Incentive</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>
+        {% for sp in finance.staff_payments.all %}
+        <tr>
+          <td style="font-weight:600">{{ sp.staff.name }}</td>
+          <td>{{ sp.staff.get_role_display }}</td>
+          <td>{% if sp.is_present %}<span class="badge badge-green">✓ Yes</span>{% else %}<span class="badge badge-red">✗ No</span>{% endif %}</td>
+          <td>₹{{ sp.salary }}</td>
+          <td>₹{{ sp.incentive }}</td>
+          <td style="text-align:right;font-weight:700">₹{{ sp.total|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#bbb;padding:24px">No staff records</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if finance.staff_payments.exists %}
+      <tfoot>
+        <tr style="background:#f8f9fa;font-weight:700">
+          <td colspan="5">Staff Total</td>
+          <td style="text-align:right;color:#e74c3c">₹{{ finance.total_staff_cost|floatformat:2 }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+
+{% if incentive_entries %}
+<div class="card">
+  <h2>🎁 Incentives — {{ report_date|date:"d M Y" }}</h2>
+  <table>
+    <thead><tr><th>Name</th><th style="text-align:right">Amount (₹)</th></tr></thead>
+    <tbody>
+      {% for inc in incentive_entries %}
+      <tr>
+        <td style="font-weight:600">{{ inc.incentive_name.name }}</td>
+        <td style="text-align:right;font-weight:700;color:#e74c3c">₹{{ inc.amount|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="background:#f8f9fa;font-weight:800">
+        <td>Total Incentives</td>
+        <td style="text-align:right;color:#e74c3c">₹{{ finance.total_incentives|floatformat:2 }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+{% endif %}
+
+{% if finance.card_expense > 0 %}
+<div class="card">
+  <h2>💳 Card Expense — {{ report_date|date:"d M Y" }}</h2>
+  <table>
+    <tr><td style="color:#555">Card Expense</td><td style="text-align:right;font-weight:700;color:#e74c3c">₹{{ finance.card_expense|floatformat:2 }}</td></tr>
+  </table>
+</div>
+{% endif %}
+
+<div class="card" style="background:{% if finance.net_profit >= 0 %}#eafaf1{% else %}#fef9f9{% endif %};border:1px solid {% if finance.net_profit >= 0 %}#a9dfbf{% else %}#f5b7b1{% endif %}">
+  <h2>🏁 Day Summary</h2>
+  <table>
+    <tr><td style="color:#555;padding:7px 0">💵 Cash Earnings</td><td style="text-align:right;font-weight:700;color:#2980b9">₹{{ finance.total_earnings|floatformat:2 }}</td></tr>
+    <tr><td style="color:#555;padding:7px 0">+ Carry Forward</td><td style="text-align:right;font-weight:700;color:#8e44ad">₹{{ finance.carry_forward|floatformat:2 }}</td></tr>
+    <tr><td style="color:#555;padding:7px 0">− Vendor Expenses</td><td style="text-align:right;font-weight:700;color:#e74c3c">₹{{ finance.total_vendor_expense|floatformat:2 }}</td></tr>
+    <tr><td style="color:#555;padding:7px 0">− Staff Cost</td><td style="text-align:right;font-weight:700;color:#e74c3c">₹{{ finance.total_staff_cost|floatformat:2 }}</td></tr>
+    <tr><td style="color:#555;padding:7px 0">− Card Expense</td><td style="text-align:right;font-weight:700;color:#e74c3c">₹{{ finance.card_expense|floatformat:2 }}</td></tr>
+    <tr><td style="color:#555;padding:7px 0">− Incentives</td><td style="text-align:right;font-weight:700;color:#e74c3c">₹{{ finance.total_incentives|floatformat:2 }}</td></tr>
+    <tr><td style="color:#555;padding:7px 0">− Other Expenses{% if finance.other_expenses_note %} ({{ finance.other_expenses_note }}){% endif %}</td><td style="text-align:right;font-weight:700;color:#e74c3c">₹{{ finance.other_expenses|floatformat:2 }}</td></tr>
+    <tr style="font-size:1.1rem;border-top:2px solid #ccc">
+      <td style="font-weight:800;padding-top:12px">NET PROFIT</td>
+      <td style="text-align:right;font-weight:800;padding-top:12px;color:{% if finance.net_profit >= 0 %}#1e8449{% else %}#c0392b{% endif %}">
+        ₹{{ finance.net_profit|floatformat:2 }}
+      </td>
+    </tr>
+  </table>
+  <!-- Delivery note -->
+  <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,.7);border-radius:7px;font-size:.8rem;color:#888">
+    📌 Zomato ₹{{ finance.zomato|floatformat:0 }} + Swiggy ₹{{ finance.swiggy|floatformat:0 }} are recorded only — not included in profit calculation.
+  </div>
+</div>
+{% endif %}
+
+<script>
+function viewReport() {
+  var d = document.getElementById('reportDate').value;
+  if(d) window.location.href = '/reports/?date=' + d;
+}
+function exportReport() {
+  var d = document.getElementById('reportDate').value;
+  if(d) window.location.href = '/export-csv/?date=' + d;
+}
+document.getElementById('reportDate').addEventListener('change', function(){
+  viewReport();
+});
+document.getElementById('reportDate').addEventListener('keydown', function(e){
+  if(e.key==='Enter') viewReport();
+});
+</script>
+{% endblock %}

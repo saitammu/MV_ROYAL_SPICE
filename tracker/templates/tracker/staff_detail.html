@@ -1,0 +1,77 @@
+{% extends 'tracker/base.html' %}
+{% block content %}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+  <a href="{% url 'staff_list' %}" style="color:#999;text-decoration:none;font-size:.85rem">← Staff List</a>
+  <div style="width:52px;height:52px;border-radius:50%;background:#e94560;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;font-weight:700">
+    {{ staff.name|first|upper }}
+  </div>
+  <div>
+    <h1 style="font-size:1.25rem;font-weight:700;color:#1a1a2e">{{ staff.name }}</h1>
+    <span class="badge badge-green">{{ staff.get_role_display }}</span>
+  </div>
+</div>
+
+<!-- Last 30 days summary -->
+<div class="grid3" style="margin-bottom:20px">
+  <div class="stat-box">
+    <div class="label">Days Present</div>
+    <div class="value profit">{{ payments|length }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="label">Total Salary</div>
+    <div class="value neutral">
+      ₹{% widthratio 0 1 1 %}
+      {% with total=0 %}
+        {% for p in payments %}{% if p.is_present %}{{ p.salary|add:0 }}{% endif %}{% endfor %}
+      {% endwith %}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="label">Days Absent</div>
+    <div class="value loss">
+      {% with absent=0 %}
+        {% for p in payments %}{% if not p.is_present %}+1{% endif %}{% endfor %}
+      {% endwith %}
+    </div>
+  </div>
+</div>
+
+<!-- Attendance history table -->
+<div class="card">
+  <h2>📅 Attendance History (Last 30 Days)</h2>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th style="text-align:center">Attendance</th>
+          <th>Salary (₹)</th>
+          <th>Incentive (₹)</th>
+          <th style="text-align:right">Total (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td style="font-weight:600">{{ p.finance.date|date:"D, d M Y" }}</td>
+          <td style="text-align:center">
+            {% if p.is_present %}
+            <span class="badge badge-green">✓ Present</span>
+            {% else %}
+            <span class="badge badge-red">✗ Absent</span>
+            {% endif %}
+          </td>
+          <td>{% if p.is_present %}₹{{ p.salary|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td>{% if p.is_present %}₹{{ p.incentive|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td style="text-align:right;font-weight:700;color:{% if p.is_present %}#27ae60{% else %}#ccc{% endif %}">
+            {% if p.is_present %}₹{{ p.total|floatformat:2 }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;color:#bbb;padding:30px">No records found</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

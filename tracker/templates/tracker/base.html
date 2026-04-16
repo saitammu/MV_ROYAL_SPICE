@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MVRS Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#222;min-height:100vh}
+nav{background:#1a1a2e;color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+nav .brand{font-size:1.2rem;font-weight:700;letter-spacing:1px;color:#e94560}
+nav .links a{color:#ccc;text-decoration:none;margin-left:18px;font-size:.9rem;transition:color .2s}
+nav .links a:hover,nav .links a.active{color:#e94560}
+.container{max-width:1100px;margin:0 auto;padding:24px 16px}
+.card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);padding:20px;margin-bottom:20px}
+.card h2{font-size:1rem;font-weight:600;color:#555;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+.btn{display:inline-block;padding:8px 18px;border-radius:6px;border:none;cursor:pointer;font-size:.88rem;font-weight:600;transition:background .2s}
+.btn-primary{background:#e94560;color:#fff}.btn-primary:hover{background:#c73652}
+.btn-green{background:#27ae60;color:#fff}.btn-green:hover{background:#219150}
+.btn-sm{padding:5px 12px;font-size:.8rem}
+.btn-danger{background:#e74c3c;color:#fff}.btn-danger:hover{background:#c0392b}
+.btn-secondary{background:#6c757d;color:#fff}
+input[type=text],input[type=number],input[type=date],input[type=password],select{
+  padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:.88rem;width:100%;outline:none;transition:border .2s}
+input:focus,select:focus{border-color:#e94560}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-box{background:#fff;border-radius:10px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07);text-align:center}
+.stat-box .label{font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:.5px}
+.stat-box .value{font-size:1.6rem;font-weight:700;margin-top:4px}
+.profit{color:#27ae60}.loss{color:#e74c3c}.neutral{color:#2980b9}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:600}
+.badge-green{background:#d5f5e3;color:#1e8449}
+.badge-red{background:#fdecea;color:#c0392b}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{background:#f8f9fa;padding:9px 12px;text-align:left;font-size:.78rem;color:#666;text-transform:uppercase;letter-spacing:.4px}
+td{padding:9px 12px;border-bottom:1px solid #f0f0f0}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.msg{padding:10px 16px;border-radius:6px;margin-bottom:14px;font-size:.88rem}
+.msg-success{background:#d5f5e3;color:#1e8449}
+.msg-error{background:#fdecea;color:#c0392b}
+@media(max-width:600px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+{% if user.is_authenticated %}
+<nav>
+  <span class="brand">🍽 MVRS</span>
+  <div class="links">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <a href="{% url 'vendors' %}">Vendors</a>
+    <a href="{% url 'reports' %}">Reports</a>
+    <a href="{% url 'zomato_report' %}">Zomato</a>
+    <a href="{% url 'swiggy_report' %}">Swiggy</a>
+    <a href="{% url 'attendance' %}">Attendance</a>
+    <a href="{% url 'staff_list' %}">Staff</a>
+    <a href="{% url 'logout' %}">Logout</a>
+  </div>
+</nav>
+{% endif %}
+{# Staff session: no full nav, minimal header only #}
+{% if not user.is_authenticated %}
+<nav style="background:#155724">
+  <span class="brand" style="color:#a9dfbf">🍽 MVRS &nbsp;<span style="font-size:.75rem;font-weight:400;color:#8fd9a8">Staff Portal</span></span>
+  <div class="links">
+    <a href="{% url 'logout' %}" style="color:#a9dfbf">Logout</a>
+  </div>
+</nav>
+{% endif %}
+<div class="container">
+{% block content %}{% endblock %}
+</div>
+</body>
+</html>

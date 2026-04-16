@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: mvrs-tracker
+    env: python
+    plan: free
+    buildCommand: >
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --noinput &&
+      python manage.py migrate
+    startCommand: gunicorn mvrs.wsgi:application --workers 2 --timeout 120
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://mvrs-tracker.onrender.com"
+      - key: STAFF_PASSWORD
+        value: "mvrs143"
+      - key: ADMIN_PASSWORD
+        value: "mvrs12345"
+      - key: DB_DIR
+        value: "/opt/render/project/src/db"
+    disk:
+      name: mvrs-db
+      mountPath: /opt/render/project/src/db
+      sizeGB: 1

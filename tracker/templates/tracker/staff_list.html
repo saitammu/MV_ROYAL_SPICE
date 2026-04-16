@@ -1,0 +1,30 @@
+{% extends 'tracker/base.html' %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+  <h1 style="font-size:1.25rem;font-weight:700;color:#1a1a2e">👥 Staff Members</h1>
+  <a href="{% url 'attendance' %}" class="btn btn-secondary btn-sm">← Attendance</a>
+</div>
+
+<div class="grid3">
+  {% for s in staff_list %}
+  <a href="{% url 'staff_detail' s.id %}" style="text-decoration:none">
+    <div class="card" style="cursor:pointer;transition:transform .15s"
+      onmouseover="this.style.transform='translateY(-3px)'"
+      onmouseout="this.style.transform=''">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;border-radius:50%;background:#e94560;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;font-weight:700;flex-shrink:0">
+          {{ s.name|first|upper }}
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:.95rem;color:#1a1a2e">{{ s.name }}</div>
+          <span class="badge badge-green">{{ s.get_role_display }}</span>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:.78rem;color:#aaa">Click to view attendance history →</div>
+    </div>
+  </a>
+  {% empty %}
+  <p style="color:#aaa;grid-column:1/-1">No active staff. Add staff from the Attendance page.</p>
+  {% endfor %}
+</div>
+{% endblock %}
